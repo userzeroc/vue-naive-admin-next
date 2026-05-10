@@ -1,0 +1,16 @@
+{
+  "name": "naive-admin2-nextjs",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream --filter vue-naive-admin --filter isme-nest-serve dev",
+    "dev:web": "pnpm --filter vue-naive-admin dev",
+    "dev:api": "pnpm --filter isme-nest-serve dev",
+    "build": "pnpm build:web && pnpm build:api",
+    "build:web": "pnpm --filter vue-naive-admin build",
+    "build:api": "pnpm --filter isme-nest-serve build",
+    "lint": "pnpm lint:web && pnpm lint:api",
+    "lint:web": "pnpm --filter vue-naive-admin lint:fix",
+    "lint:api": "pnpm --filter isme-nest-serve lint"
+  }
+}

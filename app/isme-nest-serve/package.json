@@ -1,5 +1,5 @@
 {
-  "name": "nest-jwt-typeorm",
+  "name": "isme-nest-serve",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build && ncc build ./dist/main.js -o ncc-dist",
+    "dev": "nest start --watch",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
