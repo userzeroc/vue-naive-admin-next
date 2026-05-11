@@ -153,6 +153,14 @@ export type Database = {
         Args: { path_to_check: string };
         Returns: boolean;
       };
+      get_user_roles_detail: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      switch_current_role: {
+        Args: { target_role_id: number };
+        Returns: boolean;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
