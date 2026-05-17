@@ -58,29 +58,29 @@ export const useTabStore = defineStore('tab', {
     async removeTab(path) {
       this.setTabs(this.tabs.filter(tab => tab.path !== path))
       if (path === this.activeTab) {
-        useRouterStore().router?.push(this.tabs[this.tabs.length - 1].path)
+        useRouterStore().router?.push(this.tabs.at(-1).path)
       }
     },
     removeOther(curPath = this.activeTab) {
       this.setTabs(this.tabs.filter(tab => tab.path === curPath))
       if (curPath !== this.activeTab) {
-        useRouterStore().router?.push(this.tabs[this.tabs.length - 1].path)
+        useRouterStore().router?.push(this.tabs.at(-1).path)
       }
     },
     removeLeft(curPath) {
       const curIndex = this.tabs.findIndex(item => item.path === curPath)
       const filterTabs = this.tabs.filter((item, index) => index >= curIndex)
       this.setTabs(filterTabs)
-      if (!filterTabs.find(item => item.path === this.activeTab)) {
-        useRouterStore().router?.push(filterTabs[filterTabs.length - 1].path)
+      if (!filterTabs.some(item => item.path === this.activeTab)) {
+        useRouterStore().router?.push(filterTabs.at(-1).path)
       }
     },
     removeRight(curPath) {
       const curIndex = this.tabs.findIndex(item => item.path === curPath)
       const filterTabs = this.tabs.filter((item, index) => index <= curIndex)
       this.setTabs(filterTabs)
-      if (!filterTabs.find(item => item.path === this.activeTab.value)) {
-        useRouterStore().router?.push(filterTabs[filterTabs.length - 1].path)
+      if (!filterTabs.some(item => item.path === this.activeTab.value)) {
+        useRouterStore().router?.push(filterTabs.at(-1).path)
       }
     },
     resetTabs() {

@@ -15,12 +15,34 @@
       </NButton>
     </template>
 
+    <div v-if="tableFirstLoading" class="flex flex-col">
+      <NCard size="small" class="mb-30">
+        <div class="flex flex-wrap items-center justify-between gap-12">
+          <div class="flex flex-wrap gap-12">
+            <n-skeleton :width="180" :height="34" round />
+            <n-skeleton :width="180" :height="34" round />
+          </div>
+          <div class="flex gap-12">
+            <n-skeleton :width="70" :height="34" round />
+            <n-skeleton :width="70" :height="34" round />
+          </div>
+        </div>
+      </NCard>
+      <NCard size="small">
+        <n-space vertical :size="12">
+          <n-skeleton v-for="i in 8" :key="i" :height="36" round />
+        </n-space>
+      </NCard>
+    </div>
+
     <MeCrud
+      v-show="!tableFirstLoading"
       ref="$table"
       v-model:query-items="queryItems"
       :scroll-x="1200"
       :columns="columns"
       :get-data="api.read"
+      @on-data-change="handleTableDataChange"
     >
       <MeQueryItem label="角色名" :label-width="50">
         <n-input v-model:value="queryItems.name" type="text" placeholder="请输入角色名" clearable />
@@ -95,7 +117,7 @@
 </template>
 
 <script setup>
-import { NButton, NSwitch } from 'naive-ui'
+import { NButton, NCard, NSwitch } from 'naive-ui'
 import { MeCrud, MeModal, MeQueryItem } from '@/components'
 import { useCrud } from '@/composables'
 import api from './api'
@@ -105,6 +127,7 @@ defineOptions({ name: 'RoleMgt' })
 const router = useRouter()
 
 const $table = ref(null)
+const tableFirstLoading = ref(true)
 /** QueryBar筛选参数（可选） */
 const queryItems = ref({})
 
@@ -213,6 +236,12 @@ async function handleEnable(row) {
     console.error(error)
     row.enableLoading = false
   }
+}
+
+function handleTableDataChange() {
+  if (!tableFirstLoading.value)
+    return
+  tableFirstLoading.value = false
 }
 
 const permissionTree = ref([])

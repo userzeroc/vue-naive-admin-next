@@ -34,7 +34,7 @@ export function throttle(fn, wait) {
   let previous = 0
 
   return function (...argArr) {
-    const now = +new Date()
+    const now = Date.now()
     context = this
     args = argArr
     if (now - previous > wait) {

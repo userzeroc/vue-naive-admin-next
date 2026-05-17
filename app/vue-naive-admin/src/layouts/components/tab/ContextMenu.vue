@@ -74,7 +74,7 @@ const options = computed(() => [
     key: 'close-right',
     disabled:
       tabStore.tabs.length <= 1
-      || props.currentPath === tabStore.tabs[tabStore.tabs.length - 1].path,
+      || props.currentPath === tabStore.tabs.at(-1).path,
     icon: () => h('i', { class: 'i-mdi:arrow-expand-right text-14' }),
   },
 ])
