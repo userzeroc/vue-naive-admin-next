@@ -67,6 +67,12 @@ export default defineConfig(({ mode }) => {
             })
           },
         },
+        // 通义千问 DashScope API 代理（解决浏览器 CORS 限制）
+        '/dashscope-api': {
+          target: 'https://dashscope.aliyuncs.com',
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/dashscope-api/, ''),
+        },
       },
     },
     optimizeDeps: {
