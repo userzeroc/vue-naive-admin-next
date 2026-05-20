@@ -21,14 +21,14 @@
           {{ title }}
         </h2>
         <n-input
-          v-model:value="loginInfo.username"
+          v-model:value="loginInfo.email"
           autofocus
           class="mt-32 h-40 items-center"
-          placeholder="请输入用户名"
-          :maxlength="20"
+          placeholder="请输入邮箱"
+          :maxlength="64"
         >
           <template #prefix>
-            <i class="i-fe:user mr-12 opacity-20" />
+            <i class="i-fe:mail mr-12 opacity-20" />
           </template>
         </n-input>
         <n-input
@@ -45,28 +45,6 @@
           </template>
         </n-input>
 
-        <div class="mt-20 flex items-center">
-          <n-input
-            v-model:value="loginInfo.captcha"
-            class="h-40 items-center"
-            palceholder="请输入验证码"
-            :maxlength="4"
-            @keydown.enter="handleLogin()"
-          >
-            <template #prefix>
-              <i class="i-fe:key mr-12 opacity-20" />
-            </template>
-          </n-input>
-          <img
-            v-if="captchaUrl"
-            :src="captchaUrl"
-            alt="验证码"
-            height="40"
-            class="ml-12 w-80 cursor-pointer"
-            @click="initCaptcha"
-          >
-        </div>
-
         <n-checkbox
           class="mt-20"
           :checked="isRemember"
@@ -79,13 +57,14 @@
             class="h-40 flex-1 rounded-5 text-16"
             type="primary"
             ghost
-            @click="quickLogin()"
+            :loading="loading"
+            @click="handleRegister()"
           >
-            一键体验
+            注册
           </n-button>
 
           <n-button
-            class="ml-32 h-40 flex-1 rounded-5 text-16"
+            class="ml-20 h-40 flex-1 rounded-5 text-16"
             type="primary"
             :loading="loading"
             @click="handleLogin()"
@@ -103,7 +82,7 @@
 <script setup>
 import { useStorage } from '@vueuse/core'
 import { useAuthStore } from '@/store'
-import { lStorage, throttle } from '@/utils'
+import { lStorage } from '@/utils'
 import api from './api'
 
 const authStore = useAuthStore()
@@ -112,77 +91,96 @@ const route = useRoute()
 const title = import.meta.env.VITE_TITLE
 
 const loginInfo = ref({
-  username: '',
+  email: '',
   password: '',
 })
 
-const captchaUrl = ref('')
-const initCaptcha = throttle(() => {
-  captchaUrl.value = `${import.meta.env.VITE_AXIOS_BASE_URL}/auth/captcha?${Date.now()}`
-}, 500)
-
 const localLoginInfo = lStorage.get('loginInfo')
 if (localLoginInfo) {
-  loginInfo.value.username = localLoginInfo.username || ''
+  loginInfo.value.email = localLoginInfo.email || localLoginInfo.username || ''
   loginInfo.value.password = localLoginInfo.password || ''
-}
-initCaptcha()
-
-function quickLogin() {
-  loginInfo.value.username = 'admin'
-  loginInfo.value.password = '123456'
-  handleLogin(true)
 }
 
 const isRemember = useStorage('isRemember', true)
 const loading = ref(false)
-async function handleLogin(isQuick) {
-  const { username, password, captcha } = loginInfo.value
-  if (!username || !password)
-    return $message.warning('请输入用户名和密码')
-  if (!isQuick && !captcha)
-    return $message.warning('请输入验证码')
-  try {
-    loading.value = true
-    $message.loading('正在验证，请稍后...', { key: 'login' })
-    const { data } = await api.login({ username, password: password.toString(), captcha, isQuick })
-    if (isRemember.value) {
-      lStorage.set('loginInfo', { username, password })
-    }
-    else {
-      lStorage.remove('loginInfo')
-    }
-    onLoginSuccess(data)
-  }
-  catch (error) {
-    // 10003为验证码错误专属业务码
-    if (error?.code === 10003) {
-      // 为防止爆破，验证码错误则刷新验证码
-      initCaptcha()
-    }
-    $message.destroy('login')
-    console.error(error)
-  }
-  loading.value = false
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-async function onLoginSuccess(data = {}) {
-  authStore.setToken(data)
-  $message.loading('登录中...', { key: 'login' })
+async function handleLogin() {
+  const { email, password } = loginInfo.value
+  if (!email || !password)
+    return $message.warning('请输入邮箱和密码')
+  if (!isValidEmail(email))
+    return $message.warning('请输入正确的邮箱格式')
+
   try {
-    $message.success('登录成功', { key: 'login' })
-    if (route.query.redirect) {
-      const path = route.query.redirect
-      delete route.query.redirect
-      router.push({ path, query: route.query })
-    }
-    else {
-      router.push('/')
-    }
+    loading.value = true
+    $message.loading('正在登录，请稍后...', { key: 'login' })
+
+    const { data } = await api.login({ email, password: password.toString() })
+    const accessToken = data?.accessToken
+    if (!accessToken)
+      throw new Error('登录成功但未获取 accessToken')
+
+    if (isRemember.value)
+      lStorage.set('loginInfo', { email, password })
+    else lStorage.remove('loginInfo')
+
+    onLoginSuccess({ accessToken })
   }
   catch (error) {
-    console.error(error)
     $message.destroy('login')
+    console.error(error)
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+async function handleRegister() {
+  const { email, password } = loginInfo.value
+  if (!email || !password)
+    return $message.warning('请输入邮箱和密码')
+  if (!isValidEmail(email))
+    return $message.warning('请输入正确的邮箱格式')
+  if (password.length < 6)
+    return $message.warning('密码至少 6 位')
+
+  try {
+    loading.value = true
+    $message.loading('正在注册，请稍后...', { key: 'register' })
+
+    const { data } = await api.register({ email, password: password.toString() })
+    const accessToken = data?.session?.access_token
+
+    if (accessToken) {
+      $message.success('注册成功并已登录', { key: 'register' })
+      return onLoginSuccess({ accessToken })
+    }
+
+    $message.success('注册成功，请前往邮箱确认后登录', { key: 'register' })
+  }
+  catch (error) {
+    $message.destroy('register')
+    console.error(error)
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+function onLoginSuccess(data = {}) {
+  authStore.setToken(data)
+  $message.success('登录成功', { key: 'login' })
+  if (route.query.redirect) {
+    const path = route.query.redirect
+    delete route.query.redirect
+    router.push({ path, query: route.query })
+  }
+  else {
+    router.push('/')
   }
 }
 </script>
