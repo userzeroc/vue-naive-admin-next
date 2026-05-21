@@ -6,6 +6,7 @@
  * Copyright © 2023 Ronnie Zhang(大脸怪) | https://isme.top
  **********************************/
 
+import { supabase } from '@/lib/supabase'
 import { request } from '@/utils'
 
 export default {
@@ -14,7 +15,19 @@ export default {
   // 刷新token
   refreshToken: () => request.get('/auth/refresh/token'),
   // 登出
-  logout: () => request.post('/auth/logout', {}, { needTip: false }),
+  async logout() {
+    try {
+      await request.post('/auth/logout', {}, { needTip: false })
+    }
+    catch (error) {
+      console.warn('[logout] backend logout failed, continue signOut:', error)
+    }
+
+    const { error } = await supabase.auth.signOut()
+    if (error)
+      throw error
+    return true
+  },
   // 切换当前角色
   switchCurrentRole: role => request.post(`/auth/current-role/switch/${role}`),
   // 获取角色权限

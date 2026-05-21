@@ -78,7 +78,12 @@ async function setCurrentRole() {
 }
 
 async function logout() {
-  await api.logout()
+  try {
+    await api.logout()
+  }
+  catch (error) {
+    console.error(error)
+  }
   authStore.logout()
   modalRef.value?.close()
   $message.success('已退出登录')

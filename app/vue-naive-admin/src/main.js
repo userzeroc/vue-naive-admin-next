@@ -9,9 +9,11 @@
  **********************************/
 
 import { createApp } from 'vue'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/store'
 import App from './App.vue'
-import { setupDirectives } from './directives'
 
+import { setupDirectives } from './directives'
 import { setupRouter } from './router'
 import { setupStore } from './store'
 import { setupNaiveDiscreteApi } from './utils'
@@ -19,9 +21,33 @@ import '@/styles/reset.css'
 import '@/styles/global.css'
 import 'uno.css'
 
+async function initSupabaseSession() {
+  const authStore = useAuthStore()
+
+  const { data, error } = await supabase.auth.getSession()
+  if (error) {
+    console.error('[supabase] getSession failed:', error)
+    authStore.resetToken()
+  }
+  else {
+    const accessToken = data?.session?.access_token
+    if (accessToken)
+      authStore.setToken({ accessToken })
+    else authStore.resetToken()
+  }
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    const token = session?.access_token
+    if (token)
+      authStore.setToken({ accessToken: token })
+    else authStore.resetToken()
+  })
+}
+
 async function bootstrap() {
   const app = createApp(App)
   setupStore(app)
+  await initSupabaseSession()
   setupDirectives(app)
   await setupRouter(app)
   app.mount('#app')
