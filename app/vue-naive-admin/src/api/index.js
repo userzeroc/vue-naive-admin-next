@@ -7,31 +7,52 @@
  **********************************/
 
 import { supabase } from '@/lib/supabase'
-import { request } from '@/utils'
+import { useAuthStore } from '@/store'
 
 export default {
-  // 获取用户信息
-  getUser: () => request.get('/user/detail'),
-  // 刷新token
-  refreshToken: () => request.get('/auth/refresh/token'),
-  // 登出
+  // 获取用户信息（Supabase RPC）
+  async getUser() {
+    const { data, error } = await supabase.rpc('app_get_my_user_detail')
+    if (error)
+      throw error
+    return { data }
+  },
+  // 刷新 token（读取当前 Supabase 会话）
+  async refreshToken() {
+    const { data, error } = await supabase.auth.getSession()
+    if (error)
+      throw error
+    const accessToken = data?.session?.access_token
+    if (!accessToken)
+      throw new Error('No active Supabase session')
+    return { data: { accessToken } }
+  },
+  // 登出（Supabase）
   async logout() {
-    try {
-      await request.post('/auth/logout', {}, { needTip: false })
-    }
-    catch (error) {
-      console.warn('[logout] backend logout failed, continue signOut:', error)
-    }
-
     const { error } = await supabase.auth.signOut()
     if (error)
       throw error
     return true
   },
-  // 切换当前角色
-  switchCurrentRole: role => request.post(`/auth/current-role/switch/${role}`),
-  // 获取角色权限
-  getRolePermissions: () => request.get('/role/permissions/tree'),
-  // 验证菜单路径
-  validateMenuPath: path => request.get(`/permission/menu/validate?path=${path}`),
+  // 切换当前角色（Supabase RPC）
+  async switchCurrentRole(roleId) {
+    const p_role_id = Number(roleId)
+    if (Number.isNaN(p_role_id))
+      throw new Error(`Invalid role id: ${roleId}`)
+
+    const { error } = await supabase.rpc('app_switch_current_role', { p_role_id })
+    if (error)
+      throw error
+
+    // 保持兼容现有 authStore.switchCurrentRole(data) 的入参结构
+    const { accessToken } = useAuthStore()
+    return { data: { accessToken } }
+  },
+  // 获取角色权限（Supabase RPC，扁平结构）
+  async getRolePermissions() {
+    const { data, error } = await supabase.rpc('app_get_my_permissions_flat')
+    if (error)
+      throw error
+    return { data: data || [] }
+  },
 }

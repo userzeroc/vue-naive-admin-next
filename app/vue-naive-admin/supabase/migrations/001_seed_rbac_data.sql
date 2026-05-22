@@ -112,6 +112,33 @@ set
   enable = excluded.enable,
   updated_at = now();
 
+-- 关键修复：
+-- 首次初始化时，子节点可能因为父节点尚未写入而出现 parent_id = null。
+-- 这里做一次确定性回填，保证层级关系正确。
+with rel(code, parent_code) as (
+  values
+    ('ResourceMgt', 'SysMgt'),
+    ('RoleMgt', 'SysMgt'),
+    ('UserMgt', 'SysMgt'),
+    ('RoleUser', 'RoleMgt'),
+    ('ImgUpload', 'Demo'),
+    ('BaseComponents', 'Base'),
+    ('Unocss', 'Base'),
+    ('KeepAlive', 'Base'),
+    ('Icon', 'Base'),
+    ('TestModal', 'Base'),
+    ('AddUser', 'UserMgt'),
+    ('SuperAdmin', 'UserMgt')
+)
+update public.permissions c
+set
+  parent_id = p.id,
+  updated_at = now()
+from rel r
+join public.permissions p on p.code = r.parent_code
+where c.code = r.code
+  and c.parent_id is distinct from p.id;
+
 -- --------------------------------------------------------------------------
 -- 3) 角色-权限绑定
 -- --------------------------------------------------------------------------
@@ -196,4 +223,3 @@ begin
 end $$;
 
 commit;
-

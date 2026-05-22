@@ -6,11 +6,19 @@
  * Copyright © 2023 Ronnie Zhang(大脸怪) | https://isme.top
  **********************************/
 
-import api from '@/api'
 import { useAuthStore, usePermissionStore, useUserStore } from '@/store'
 import { getPermissions, getUserInfo } from '@/store/helper'
 
 const WHITE_LIST = ['/login', '/404']
+
+function getPathPrefix(path = '') {
+  const cleanPath = path.split('?')[0].replace(/\/+$/, '')
+  if (!cleanPath || cleanPath === '/')
+    return '/'
+  const [first] = cleanPath.split('/').filter(Boolean)
+  return first ? `/${first}` : '/'
+}
+
 export function createPermissionGuard(router) {
   router.beforeEach(async (to) => {
     const authStore = useAuthStore()
@@ -47,9 +55,14 @@ export function createPermissionGuard(router) {
     if (routes.some(route => route.name === to.name))
       return true
 
-    // 判断是无权限还是404
-    const { data: hasMenu } = await api.validateMenuPath(to.path)
-    return hasMenu
+    // 本地判定 403 / 404（不再依赖后端 validateMenuPath）
+    const accessPrefixes = new Set(
+      permissionStore.accessRoutes
+        .map(route => getPathPrefix(route.path))
+        .filter(prefix => prefix !== '/'),
+    )
+    const targetPrefix = getPathPrefix(to.path)
+    return accessPrefixes.has(targetPrefix)
       ? { name: '403', query: { path: to.fullPath }, state: { from: 'permission-guard' } }
       : { name: '404', query: { path: to.fullPath } }
   })
