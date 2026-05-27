@@ -7,21 +7,19 @@
  **********************************/
 
 import { supabase } from '@/lib/supabase'
+import { callRpc, throwSupabaseError } from '@/lib/supabase-request'
 import { useAuthStore } from '@/store'
 
 export default {
   // 获取用户信息（Supabase RPC）
   async getUser() {
-    const { data, error } = await supabase.rpc('app_get_my_user_detail')
-    if (error)
-      throw error
-    return { data }
+    const data = await callRpc('app_get_my_user_detail')
+    return { data: data || {} }
   },
   // 刷新 token（读取当前 Supabase 会话）
   async refreshToken() {
     const { data, error } = await supabase.auth.getSession()
-    if (error)
-      throw error
+    throwSupabaseError(error, 'Get session failed')
     const accessToken = data?.session?.access_token
     if (!accessToken)
       throw new Error('No active Supabase session')
@@ -30,8 +28,7 @@ export default {
   // 登出（Supabase）
   async logout() {
     const { error } = await supabase.auth.signOut()
-    if (error)
-      throw error
+    throwSupabaseError(error, 'Sign out failed')
     return true
   },
   // 切换当前角色（Supabase RPC）
@@ -40,9 +37,7 @@ export default {
     if (Number.isNaN(p_role_id))
       throw new Error(`Invalid role id: ${roleId}`)
 
-    const { error } = await supabase.rpc('app_switch_current_role', { p_role_id })
-    if (error)
-      throw error
+    await callRpc('app_switch_current_role', { p_role_id }, 'Switch current role failed')
 
     // 保持兼容现有 authStore.switchCurrentRole(data) 的入参结构
     const { accessToken } = useAuthStore()
@@ -50,9 +45,7 @@ export default {
   },
   // 获取角色权限（Supabase RPC，扁平结构）
   async getRolePermissions() {
-    const { data, error } = await supabase.rpc('app_get_my_permissions_flat')
-    if (error)
-      throw error
+    const data = await callRpc('app_get_my_permissions_flat')
     return { data: data || [] }
   },
 }
